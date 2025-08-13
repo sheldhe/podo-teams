@@ -120,7 +120,7 @@ function teamAvg(t: Team) {
 }
 
 // ---------- Demo Component ----------
-export default function Main() {
+export default function MainPage() {
   const [raw, setRaw] = useState(
     `서윤, 189\n희재, 222.2\n민지, 160\n지훈, 150\n세라, 145\n수현, 142\n진우, 140\n하나, 138\n태호, 135\n유나, 133\n가영, 132\n도현, 130\n`
   );
