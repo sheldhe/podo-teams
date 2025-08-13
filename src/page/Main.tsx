@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 /**
  * Bowling team maker
@@ -122,7 +122,7 @@ function teamAvg(t: Team) {
 // ---------- Demo Component ----------
 export default function Main() {
   const [raw, setRaw] = useState(
-    `동우, 190\n희재, 175\n민지, 160\n지훈, 150\n세라, 145\n수현, 142\n진우, 140\n하나, 138\n태호, 135\n유나, 133\n가영, 132\n도현, 130\n`
+    `서윤, 189\n희재, 222.2\n민지, 160\n지훈, 150\n세라, 145\n수현, 142\n진우, 140\n하나, 138\n태호, 135\n유나, 133\n가영, 132\n도현, 130\n`
   );
   const [maxPerTable, setMaxPerTable] = useState(6);
   const players = useMemo<Player[]>(() => parsePlayers(raw), [raw]);
