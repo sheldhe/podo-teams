@@ -112,11 +112,56 @@ export default function RandomPage() {
     [groups]
   );
 
+  // 그룹 키의 숫자 순서(1그룹, 2그룹, 3그룹 ...)를 보장
+  const sortGroupKeys = (keys: string[]) => {
+    const num = (k: string) => {
+      const m = k.match(/\d+/);
+      return m ? Number(m[0]) : Number.MAX_SAFE_INTEGER;
+    };
+    return [...keys].sort((a, b) => num(a) - num(b));
+  };
+
+  // name -> groupKey 매핑 만들기
+  const buildNameToGroup = (groups: GroupsMap) => {
+    const map: Record<string, string> = {};
+    for (const [gKey, names] of Object.entries(groups)) {
+      for (const n of names) map[n] = gKey;
+    }
+    return map;
+  };
+
+  // 팀을 '그룹 순서'로 정렬 (동일 그룹 내에서는 가나다 정렬)
+  const sortTeamByGroupOrder = (
+    team: string[],
+    nameToGroup: Record<string, string>,
+    orderedGroupKeys: string[]
+  ) => {
+    const idx = (name: string) =>
+      orderedGroupKeys.indexOf(nameToGroup[name] ?? "");
+    return [...team].sort((a, b) => {
+      const da = idx(a);
+      const db = idx(b);
+      if (da !== db) return da - db;
+      return a.localeCompare(b, "ko");
+    });
+  };
+
   const runRandomize = () => {
     const r: RoundResult[] = [];
     let pairMemo = new Set<string>();
+
+    // 그룹 순서/매핑 준비
+    const orderedGroupKeys = sortGroupKeys(Object.keys(groups));
+    const nameToGroup = buildNameToGroup(groups);
+
     for (let round = 0; round < rounds; round++) {
-      const teams = planOneRound(groups, teamCount, round);
+      let teams = planOneRound(groups, teamCount, round);
+
+      // ⬇️ 각 팀을 '1그룹 → 2그룹 → 3그룹' 순으로 정렬
+      teams = teams.map((team) =>
+        sortTeamByGroupOrder(team, nameToGroup, orderedGroupKeys)
+      );
+
       const { repeats, pairSet } = countPairRepeats(pairMemo, teams);
       pairMemo = pairSet;
       r.push({ teams, pairRepeats: repeats });
