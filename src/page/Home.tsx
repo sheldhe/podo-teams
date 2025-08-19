@@ -45,6 +45,12 @@ export default function HomePage() {
               >
                 랜덤 모드
               </button>
+              <button
+                onClick={() => navigate("/count")}
+                className="w-full rounded-2xl border border-fuchsia-200 bg-white px-6 py-3 text-sm font-semibold text-fuchsia-700 shadow hover:bg-fuchsia-50 active:scale-[0.98]"
+              >
+                맞춤 점수 찾기
+              </button>
 
               {/* 링크로 하고 싶으면 버튼 대신 이렇게 */}
               {/* <Link to="/main" className="...">일반 모드</Link>
