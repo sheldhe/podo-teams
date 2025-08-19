@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 /**
  * Bowling team maker
@@ -124,11 +124,15 @@ function teamAvg(t: Team) {
 
 // ---------- Demo Component ----------
 export default function MainPage() {
-  const [raw, setRaw] = useState(
-    `서윤, 189\n희재, 222.2\n민지, 160\n지훈, 150\n세라, 145\n수현, 142\n진우, 140\n하나, 138\n태호, 135\n유나, 133\n가영, 132\n도현, 130\n`
-  );
+  const [source, setSource] = useState<"manual" | "sheet">("sheet");
+  const [raw, setRaw] = useState("이름, 에버\n"); // 헤더 1행 포함 추천
+  const [sheetLoading, setSheetLoading] = useState(false);
+  const [sheetError, setSheetError] = useState<string | null>(null);
+
   const [maxPerTable, setMaxPerTable] = useState(6);
-  const players = useMemo<Player[]>(() => parsePlayers(raw), [raw]);
+
+  // 2) players는 항상 raw에서 파생
+  const players = useMemo(() => parsePlayers(raw), [raw]);
 
   const { teams, teamCount } = useMemo(
     () => makeTeams(players, maxPerTable),
@@ -140,16 +144,75 @@ export default function MainPage() {
     return players.reduce((s, p) => s + p.avg, 0) / players.length;
   }, [players]);
 
+  useEffect(() => {
+    if (source !== "sheet") return;
+
+    const url =
+      "https://docs.google.com/spreadsheets/d/1Q97suapoy2sHlRz-mBHJzNCREqKuJgAVK98827avlBs/gviz/tq?tqx=out:csv&gid=0";
+
+    setSheetLoading(true);
+    setSheetError(null);
+
+    fetch(url)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.text();
+      })
+      .then((csv) => {
+        // CSV -> raw (그대로 붙여넣기 가능한 텍스트로)
+        // A: 이름, B: 에버 가정. 헤더 포함이면 그대로 두는 게 파싱에 유리.
+        // 헤더 없으면 수동으로 추가해도 됨: setRaw("이름, 에버\n" + csv)
+        setRaw(csv.trim());
+      })
+      .catch((e) => setSheetError(String(e)))
+      .finally(() => setSheetLoading(false));
+  }, [source]);
+
   return (
     <div className="min-h-screen w-full bg-gray-50 px-6 py-10">
       <div className="mx-auto max-w-5xl">
         <h1 className="text-2xl font-bold mb-4">
           볼링 팀 자동분배 (시드 + 스네이크)
         </h1>
-        <p className="text-sm text-gray-600 mb-6">
+        <p className="text-sm text-gray-600 mb-2">
           인원 {players.length}명, 테이블당 최대 {maxPerTable}명 → 팀 수{" "}
           {teamCount} (예: 10→5x2, 12→6x2, 15→5x3)
         </p>
+
+        {/* 데이터 소스 선택 */}
+        <div className="mb-6 flex items-center gap-3">
+          <label className="text-sm font-medium">데이터 소스</label>
+          <select
+            className="rounded-xl border px-3 py-2 text-sm"
+            value={source}
+            onChange={(e) => setSource(e.target.value as "manual" | "sheet")}
+          >
+            <option value="sheet">스프레드시트(CSV)</option>
+            <option value="manual">수동 입력</option>
+          </select>
+          {source === "sheet" && (
+            <>
+              {sheetLoading && (
+                <span className="text-xs text-gray-500">불러오는 중…</span>
+              )}
+              {sheetError && (
+                <span className="text-xs text-red-500">
+                  로드 실패: {sheetError}
+                </span>
+              )}
+              <button
+                className="rounded-lg border px-3 py-1 text-xs"
+                onClick={() => {
+                  // 강제 새로고침: 소스 토글로 useEffect 재실행
+                  setSource("manual");
+                  setTimeout(() => setSource("sheet"), 0);
+                }}
+              >
+                새로고침
+              </button>
+            </>
+          )}
+        </div>
 
         <div className="grid md:grid-cols-2 gap-4 mb-6">
           <div className="flex flex-col">
@@ -160,26 +223,31 @@ export default function MainPage() {
               value={raw}
               onChange={(e) => setRaw(e.target.value)}
               className="h-48 w-full rounded-2xl border px-3 py-2 text-sm shadow-sm focus:outline-none"
-              placeholder="예) 홍길동, 155"
+              placeholder="예) 이름, 155  (CSV/헤더 허용: '이름, 에버')"
             />
             <p className="mt-2 text-xs text-gray-500">
-              쉼표/공백 구분 가능. 한 줄에 한 명.
+              CSV 또는 한 줄에 한 명. 헤더가 있어도 자동 인식.
             </p>
           </div>
+
           <div className="flex flex-col">
             <label className="text-sm font-medium mb-2">테이블 최대 인원</label>
             <input
               type="number"
-              min={3}
-              max={8}
+              min={2}
+              max={12}
               value={maxPerTable}
-              onChange={(e) => setMaxPerTable(Number(e.target.value) || 6)}
+              onChange={(e) => {
+                const v = Number(e.target.value);
+                if (Number.isNaN(v)) return;
+                // 2~12 사이 정수로 클램프
+                const clamped = Math.max(2, Math.min(12, Math.floor(v)));
+                setMaxPerTable(clamped);
+              }}
               className="w-40 rounded-2xl border px-3 py-2 text-sm shadow-sm"
             />
             <div className="mt-4 text-sm">
-              <div>
-                전체 평균: <b>{globalAvg.toFixed(1)}</b>
-              </div>
+              전체 평균: <b>{globalAvg.toFixed(1)}</b>
             </div>
           </div>
         </div>
@@ -224,32 +292,32 @@ export default function MainPage() {
 
 // ---------- Helpers ----------
 function parsePlayers(input: string): Player[] {
-  return input
-    .split(/\n|\r/)
+  if (!input?.trim()) return [];
+
+  const lines = input.trim().split(/\r?\n/);
+
+  // 1) 헤더 자동 감지 (첫 줄에 '이름'과 '에버'가 있으면 스킵)
+  const hasHeader = /이름/i.test(lines[0]) && /에버|평균|avg/i.test(lines[0]);
+
+  const dataLines = hasHeader ? lines.slice(1) : lines;
+
+  return dataLines
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => {
-      // Allow formats: "이름, 150" | "이름 150" | "이름\t150"
-      const parts = line.split(/[;,\t]|\s{2,}|\s\-\s|\s/).filter(Boolean);
-      // Better parsing: try comma first
-      const byComma = line.split(",");
-      if (byComma.length >= 2) {
-        const name = byComma[0].trim();
-        const avg = Number(
-          byComma
-            .slice(1)
-            .join(",")
-            .replace(/[^0-9.]/g, "")
-        );
-        return { name, avg: isNaN(avg) ? 0 : avg };
+      // CSV 우선
+      const comma = line.split(",");
+      if (comma.length >= 2) {
+        const name = comma[0]?.trim() ?? "";
+        const avg = Number((comma[1] ?? "").replace(/[^0-9.]/g, ""));
+        return name ? { name, avg: isNaN(avg) ? 0 : avg } : null;
       }
-      // Fallback to last token numeric
-      const last = parts[parts.length - 1];
-      const avg = Number(String(last).replace(/[^0-9.]/g, ""));
-      const name =
-        parts.slice(0, -1).join(" ") ||
-        `Player${Math.random().toString(36).slice(2, 7)}`;
-      return { name: name.trim(), avg: isNaN(avg) ? 0 : avg };
+      // 공백 구분 보조
+      const parts = line.split(/\s+/);
+      const avgTok = parts.at(-1) ?? "";
+      const avg = Number(String(avgTok).replace(/[^0-9.]/g, ""));
+      const name = parts.slice(0, -1).join(" ");
+      return name ? { name, avg: isNaN(avg) ? 0 : avg } : null;
     })
-    .filter((p) => p.name);
+    .filter((p): p is Player => Boolean(p));
 }
