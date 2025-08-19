@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 /**
  * CountPage – 볼링 목표 점수 역산기
