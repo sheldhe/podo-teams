@@ -21,8 +21,10 @@ export type Team = { idx: number; players: Player[]; sizeLimit: number };
 
 // ---------- Core Logic ----------
 function decideTeamCount(n: number, maxPerTable: number) {
+  // ceil로 바꿔서 항상 총 수용 인원이 참가자 이상이 되게
+  const cap = Math.max(2, Math.min(12, Math.floor(maxPerTable))); // 최소 2, 최대 12 같은 가드
   if (n <= 0) return 0;
-  return Math.max(2, Math.round(n / maxPerTable));
+  return Math.max(2, Math.ceil(n / cap));
 }
 
 function targetSizes(n: number, teams: number, maxPerTable: number): number[] {
@@ -75,8 +77,11 @@ function makeTeams(players: Player[], maxPerTable = 6) {
   const n = players.length;
   if (n === 0) return { teams: [], sizes: [], teamCount: 0 };
 
-  const teamCount = decideTeamCount(n, maxPerTable);
-  const sizes = targetSizes(n, teamCount, maxPerTable);
+  // 가드: maxPerTable이 0, 음수, NaN이 들어오지 않게
+  const cap = Math.max(2, Math.min(12, Math.floor(maxPerTable)));
+
+  const teamCount = decideTeamCount(n, cap);
+  const sizes = targetSizes(n, teamCount, cap);
 
   const teams: Team[] = Array.from({ length: teamCount }, (_, idx) => ({
     idx,
@@ -84,28 +89,26 @@ function makeTeams(players: Player[], maxPerTable = 6) {
     sizeLimit: sizes[idx],
   }));
 
-  // Seeding: sort by avg desc
   const seeded = [...players].sort((a, b) => b.avg - a.avg);
 
-  // Assignment: snake while respecting size limits
   const pattern = snakeOrder(teamCount);
-  let p = 0; // index within pattern
+  let p = 0;
+
   for (const pl of seeded) {
+    // 먼저 스네이크 순서대로 넣어보고
     let placed = false;
-    let tries = 0;
-    while (!placed && tries < teamCount * 2) {
-      const teamIdx = pattern[p % pattern.length];
-      p++;
-      tries++;
+    for (let tries = 0; tries < pattern.length; tries++) {
+      const teamIdx = pattern[(p + tries) % pattern.length];
       if (teams[teamIdx].players.length < teams[teamIdx].sizeLimit) {
         teams[teamIdx].players.push(pl);
         placed = true;
+        p = (p + tries + 1) % pattern.length;
+        break;
       }
     }
+    // 그래도 못 넣으면, 남는 팀 아무 데나 (절대 throw 안 함)
     if (!placed) {
-      // Fallback: put into any team with room
-      const t = teams.find((t) => t.players.length < t.sizeLimit);
-      if (!t) throw new Error("No room left for player: " + pl.name);
+      const t = teams.find((t) => t.players.length < t.sizeLimit) ?? teams[0];
       t.players.push(pl);
     }
   }
