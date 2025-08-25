@@ -1,5 +1,7 @@
 // src/page/Home.tsx
 import { Link, useNavigate } from "react-router-dom";
+import { InstagramIcon } from "../icons/InstagramIcon";
+import { KakaoIcon } from "../icons/KakaoIcon";
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -17,9 +19,24 @@ export default function HomePage() {
             <h1 className="text-2xl font-extrabold text-purple-700">
               Podo Bowling Club
             </h1>
-            <p className="text-xs text-gray-500">
-              칠텐 링크 / 오픈톡 링크 / 인스타그램 링크⚡️
-            </p>
+            <div className="mt-1 flex items-center gap-3 text-sm text-gray-500">
+              <a
+                href="https://www.instagram.com/podo_bowling/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 hover:text-purple-600"
+              >
+                <InstagramIcon /> Instagram
+              </a>
+              <a
+                href="https://open.kakao.com/o/g2z6w5Hh"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 hover:text-yellow-600"
+              >
+                <KakaoIcon /> OpenTalk
+              </a>
+            </div>
           </div>
         </header>
 
