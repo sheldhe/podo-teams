@@ -97,25 +97,26 @@ function scoreGame(frames: Frame[]): number {
 // 후보 생성
 function generateNormalFrameCandidates(): Frame[] {
   const res: Frame[] = [];
-  res.push([10]); // 스트
-  for (let a = 0; a <= 9; a++) res.push([a, 10 - a]); // 스페어
-  for (let a = 0; a <= 9; a++) {
-    for (let b = 0; b <= 9 - a; b++) res.push([a, b]); // 오픈
+  res.push([10]); // 스트라이크
+  for (let a = 1; a <= 9; a++) res.push([a, 10 - a]); // 스페어 (a=0 제외)
+  for (let a = 1; a <= 9; a++) {
+    // a=0 제외
+    for (let b = 0; b <= 9 - a; b++) res.push([a, b]);
   }
   return res;
 }
 
 function generateTenthFrameCandidates(): Frame[] {
   const res: Frame[] = [];
-  // 오픈
-  for (let a = 0; a <= 9; a++) {
+  // 오픈 (첫구는 1~9만 허용)
+  for (let a = 1; a <= 9; a++) {
     for (let b = 0; b <= 9 - a; b++) res.push([a, b]);
   }
-  // 스페어 + 보너스
-  for (let a = 0; a <= 9; a++) {
+  // 스페어 + 보너스 (첫구는 1~9만 허용)
+  for (let a = 1; a <= 9; a++) {
     for (let c = 0; c <= 10; c++) res.push([a, 10 - a, c]);
   }
-  // 1구 스트 + 보너스 2구
+  // 1구 스트 + 보너스 2구 (스트라이크는 그대로 허용)
   for (let b = 0; b <= 10; b++) {
     if (b === 10) {
       for (let c = 0; c <= 10; c++) res.push([10, b, c]);
